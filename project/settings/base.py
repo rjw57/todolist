@@ -49,6 +49,7 @@ ALLOWED_HOSTS = ["*"]
 
 #: Installed applications
 INSTALLED_APPS = [
+    "django_bridge",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -73,6 +74,7 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django_structlog.middlewares.RequestMiddleware",
+    "django_bridge.middleware.DjangoBridgeMiddleware",
 ]
 #: Login configuration
 SOCIAL_AUTH_URL_NAMESPACE = "social"
@@ -104,6 +106,11 @@ FRONTEND_APP_BUILD_DIR = os.environ.get(
     "DJANGO_FRONTEND_APP_BUILD_DIR",
     os.path.abspath(os.path.join(BASE_DIR, "ui", "frontend", "build")),
 )
+
+DJANGO_BRIDGE = {
+    "CONTEXT_PROVIDERS": {},
+    "VITE_BUNDLE_DIR": FRONTEND_APP_BUILD_DIR,
+}
 
 # If the build directory for the frontend actually exists, serve files for the root of the
 # application from it. Print a warning otherwise.
@@ -185,6 +192,10 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 STATIC_ROOT = os.environ.get("DJANGO_STATIC_ROOT", os.path.join(BASE_DIR, "build", "static"))
+
+STATICFILES_DIRS = [
+   DJANGO_BRIDGE["VITE_BUNDLE_DIR"],
+]
 
 # By default we a) redirect all HTTP traffic to HTTPS, b) set the HSTS header to a maximum age
 # of 1 year (as per the consensus recommendation from a quick Google search) and c) advertise that

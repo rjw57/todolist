@@ -98,6 +98,7 @@ proxyprefix = "^0.1.3"
 social-auth-app-django = "^5.2.0"
 
 whitenoise = "^6.5.0"
+django-bridge = "^0.3.2"
 
 [tool.poetry.group.dev.dependencies]
 # Dependencies for running the web application in local development.

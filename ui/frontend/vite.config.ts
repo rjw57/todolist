@@ -13,7 +13,7 @@ export default defineConfig({
     manifest: true,
     copyPublicDir: true,
     rollupOptions: {
-      input: "/index.html",
+      input: "/src/main.tsx",
     },
     minify: process.env.NODE_ENV === "production" ? "esbuild" : false,
     sourcemap: process.env.NODE_ENV === "production" ? false : "inline",

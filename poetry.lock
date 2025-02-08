@@ -455,6 +455,21 @@ argon2 = ["argon2-cffi (>=19.1.0)"]
 bcrypt = ["bcrypt"]
 
 [[package]]
+name = "django-bridge"
+version = "0.3.2"
+description = "The simple way to build Django applications with modern React frontends"
+optional = false
+python-versions = "*"
+files = [
+    {file = "django_bridge-0.3.2-py3-none-any.whl", hash = "sha256:653db60f990ea613e4071548d24ba11c662860178896b6275b01a203af5a020d"},
+    {file = "django_bridge-0.3.2.tar.gz", hash = "sha256:a13a347231856f935512514bfa691f9c7ed7cd51e4c702adffc239005a833108"},
+]
+
+[package.dependencies]
+Django = ">=4.0,<6.0"
+telepath = ">=0.3,<0.4"
+
+[[package]]
 name = "django-debug-toolbar"
 version = "4.4.6"
 description = "A configurable set of panels that display various debug information about the current request/response."
@@ -1792,6 +1807,20 @@ tests = ["freezegun (>=0.2.8)", "pretend", "pytest (>=6.0)", "pytest-asyncio (>=
 typing = ["mypy (>=1.4)", "rich", "twisted"]
 
 [[package]]
+name = "telepath"
+version = "0.3.1"
+description = "A library for exchanging data between Python and JavaScript"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "telepath-0.3.1-py38-none-any.whl", hash = "sha256:c280aa8e77ad71ce80e96500a4e4d4a32f35b7e0b52e896bb5fde9a5bcf0699a"},
+    {file = "telepath-0.3.1.tar.gz", hash = "sha256:925c0609e0a8a6488ec4a55b19d485882cf72223b2b19fe2359a50fddd813c9c"},
+]
+
+[package.extras]
+docs = ["mkdocs (>=1.1,<1.2)", "mkdocs-material (>=6.2,<6.3)"]
+
+[[package]]
 name = "tox"
 version = "4.14.1"
 description = "tox is a generic virtualenv management and test command line tool"
@@ -1919,4 +1948,4 @@ brotli = ["brotli"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "dcb5fa02db938f680d85234cad99534e732ae34a2c98e4952dc0f956b2d14bfc"
+content-hash = "c682f6665de2b8d92bcef4e4d3bb9d4083b581fd2bb283754cba7a5b71fcb4d0"

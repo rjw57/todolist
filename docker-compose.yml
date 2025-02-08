@@ -1,0 +1,184 @@
+# Unique project name. Used by docker compose to avoid re-using docker containers with the same
+# name from different projects.
+# This is a dummy line to demonstrate that the upgrade works
+name: todolist
+
+# Common environment variables needed for starting the Django application.
+x-django-application-environment: &django-application-environment
+  EXTERNAL_SETTING_SECRET_KEY: fake-secret
+  EXTERNAL_SETTING_DATABASES: '{"default":{"HOST":"db","NAME":"webapp-db","USER":"webapp-user","PASSWORD":"webapp-pass"}}'
+  # Disable HTTP -> HTTPS redirect when running locally.
+  DANGEROUS_DISABLE_HTTPS_REDIRECT: "1"
+
+# Dependencies for the webapp itself.
+x-webapp-depends-on: &webapp-depends-on
+  db:
+    condition: service_healthy
+  migrate-db:
+    condition: service_completed_successfully
+
+services:
+  # App running in development mode. This can be run via:
+  #   docker compose --profile development up --build
+  webapp: &webapp
+    build:
+      context: .
+      target: development
+    environment:
+      <<: *django-application-environment
+      DJANGO_FRONTEND_APP_BUILD_DIR: "/tmp/frontend_build"
+    env_file:
+      - secrets.env
+    tty: true
+    profiles:
+      - development
+    ports:
+      - 8000:8000
+      - 5678:5678
+    depends_on:
+      <<: *webapp-depends-on
+      frontend_watch:
+        condition: service_started
+    volumes:
+      - .:/usr/src/app:ro
+      - "frontend-build:/tmp/frontend_build:ro"
+
+  # Front end used in development mode which is continually re-build using
+  # webpack's watch support. Used to provide an updated source of files for
+  # the Django app.
+  frontend_watch:
+    build:
+      context: .
+      target: frontend-deps
+    entrypoint: ["npm", "run", "watch"]
+    volumes:
+      # For the frontend, mount the local frontend directories inside the container
+      # as a volume to allow local changes to be reflected without having to
+      # re-build the container.
+      - type: bind
+        source: ./ui/frontend/src
+        target: /usr/src/app/src
+        read_only: true
+      - type: bind
+        source: ./ui/frontend/public
+        target: /usr/src/app/public
+        read_only: true
+      - "frontend-build:/tmp/frontend_build"
+    command: ["run", "watch"]
+    profiles:
+      - development
+    environment:
+      APP_BUILD: "/tmp/frontend_build"
+
+  # App running in production mode. This can be run via:
+  #   docker compose --profile production up --build
+  webapp-production:
+    <<: *webapp
+    build:
+      context: .
+    depends_on:
+      <<: *webapp-depends-on
+    profiles:
+      - production
+    environment:
+      <<: *django-application-environment
+    volumes: []
+
+  # Service to allow management commands to be run via:
+  #   docker compose run --build --rm manage ...
+  manage:
+    build:
+      context: .
+      target: development
+    environment:
+      <<: *django-application-environment
+    env_file:
+      - secrets.env
+    tty: true
+    entrypoint: ["./manage.py"]
+    profiles:
+      - utilities
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      # Management command may modify the application code.
+      - .:/usr/src/app
+
+  # Service to allow running tox within the application container via
+  #   docker compose run --build --rm tox
+  tox:
+    build:
+      context: .
+      target: tox
+    environment:
+      <<: *django-application-environment
+      TEST_USE_EXTERNAL_DATABASE: "1"
+      # Make sure that we point tox our writable volume
+      COVERAGE_FILE: /tox/coverage
+      TOXINI_WORK_DIR: /tox/work
+      TOXINI_ARTEFACT_DIR: /tox/build
+    tty: true
+    profiles:
+      - utilities
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/usr/src/app:ro
+      - ./build/compose/tox:/tox
+
+  # A service which runs database migrations and then exits.
+  migrate-db:
+    build:
+      context: .
+      target: development
+    environment:
+      <<: *django-application-environment
+    env_file:
+      - secrets.env
+    profiles:
+      - development
+      - production
+    entrypoint: ["./manage.py"]
+    command: ["migrate"]
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - .:/usr/src/app:ro
+
+  # A PostgreSQL database.
+  db:
+    image: postgres
+    environment:
+      POSTGRES_DB: webapp-db
+      POSTGRES_USER: webapp-user
+      POSTGRES_PASSWORD: webapp-pass
+    healthcheck:
+      # Note that "pg_isready" is not quite what we want since pg_isready only checks for
+      # connection, not that the database exists.
+      test: >-
+        PGPASSWORD=$$POSTGRES_PASSWORD psql
+        --username=$$POSTGRES_USER --dbname=$$POSTGRES_DB
+        --host=127.0.0.1 --quiet --no-align --tuples-only
+        -1 --command="SELECT 1"
+      interval: 1s
+      start_period: 60s
+    ports:
+      - 9876:5432
+    profiles:
+      - development
+      - production
+      - utilities
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - postgres-backup:/backups
+
+volumes:
+  # Persistent volumes for postgres database data.
+  postgres-data:
+  postgres-backup:
+
+  # Build directory for frontend
+  frontend-build:

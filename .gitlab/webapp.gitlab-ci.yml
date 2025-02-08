@@ -1,0 +1,108 @@
+include:
+  - project: "uis/devops/continuous-delivery/ci-templates"
+    file: "/auto-devops/common-pipeline.yml"
+    ref: v6.5.0
+  - project: "uis/devops/continuous-delivery/ci-templates"
+    file: "/auto-devops/artifact-registry.yml"
+    ref: v6.5.0
+  - project: "uis/devops/continuous-delivery/ci-templates"
+    file: "/auto-devops/release-it.yml"
+    ref: v6.5.0
+  - project: "uis/devops/continuous-delivery/ci-templates"
+    file: "/commitlint.yml"
+    ref: v6.5.0
+
+variables:
+  DAST_DISABLED: "1"
+  TEST_DISABLED: "1"
+  PYTHON_BUILD_DIST_DISABLED: "1"
+  PUBLISH_PYTHON_PACKAGE_DISABLED: "1"
+  # Remove USE_MERGE_REQUEST_RELEASE_FLOW to make a release for each merge to the default branch.
+  USE_MERGE_REQUEST_RELEASE_FLOW: "1"
+  # Set CI_APPLICATION_REPOSITORY so that we always publish images to the same container registry
+  # repository. This helps ensure that we don't get an explosion of container registry repositories
+  # with a single tag in for every branch which ever existed.
+  CI_APPLICATION_REPOSITORY: $CI_REGISTRY_IMAGE
+
+.postgres-service: &postgres-service
+  name: postgres
+  variables:
+    POSTGRES_DB: ci-db
+    POSTGRES_USER: ci-user
+    POSTGRES_PASSWORD: ci-pass
+
+.postgres-variables: &postgres-variables
+  EXTERNAL_SETTING_DATABASES: '{"default":{"HOST":"postgres","NAME":"ci-db","USER":"ci-user","PASSWORD":"ci-pass"}}'
+  TEST_USE_EXTERNAL_DATABASE: "1"
+
+# We use the python:tox job to generate code coverage artefacts, etc. The tox job runs using the
+# system Python version.
+python:tox:
+  services:
+    - *postgres-service
+  parallel:
+    matrix:
+      - PYTHON_VERSION: "3.12" # Make sure this matches the version in pyproject.toml and the Dockerfile.
+  variables:
+    <<: *postgres-variables
+    # Pin tox and poetry to a known good set since they can sometimes interfere.
+    # Keep this in sync with the version in pyproject.toml.
+    TOX_REQUIREMENT: tox==4.23.2
+    TOX_ADDITIONAL_REQUIREMENTS: poetry==2.0.1
+
+# We use the pytest job to make sure that pytest runs on its own. This is to make sure that VSCode
+# (which also does this) will continue to be able to run and debug tests.
+python:pytest:
+  extends: python:tox
+  before_script:
+    - !reference ["python:tox", "before_script"]
+    - echo -e "\e[0Ksection_start:`date +%s`:install_environment[collapsed=true]\r\e[0KInstall environment"
+    - poetry install --no-root --sync
+    - echo -e "\e[0Ksection_end:`date +%s`:install_environment\r\e[0K"
+  script:
+    - poetry run pytest
+
+# Run the test suite within the actual container we built. This uses some
+# knowledge of the Auto DevOps naming conventions to pull the built image,
+# install developer dependencies within it and run tests.
+#
+# This is not so much a *correctness* check but a final check that we've
+# not done anything to the production image which stops us running code.
+container:pytest:
+  needs: [build]
+  image: docker:cli
+  services:
+    - *postgres-service
+    - docker:dind
+  before_script:
+    - echo -e "\e[0Ksection_start:`date +%s`:docker_info[collapsed=true]\r\e[0KDocker environment information"
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_REGISTRY_PASSWORD" "$CI_REGISTRY"
+    - docker info
+    - echo -e "\e[0Ksection_end:`date +%s`:docker_info\r\e[0K"
+  script:
+    - echo -e "\e[0Ksection_start:`date +%s`:docker_pull[collapsed=true]\r\e[0KPulling image"
+    - |-
+      if [[ -z "$CI_COMMIT_TAG" ]]; then
+        export CI_APPLICATION_REPOSITORY=${CI_APPLICATION_REPOSITORY:-$CI_REGISTRY_IMAGE/$CI_COMMIT_REF_SLUG}
+        export CI_APPLICATION_TAG=${CI_APPLICATION_TAG:-$CI_COMMIT_SHA}
+      else
+        export CI_APPLICATION_REPOSITORY=${CI_APPLICATION_REPOSITORY:-$CI_REGISTRY_IMAGE}
+        export CI_APPLICATION_TAG=${CI_APPLICATION_TAG:-$CI_COMMIT_TAG}
+      fi
+    - APPLICATION_IMAGE="${CI_APPLICATION_REPOSITORY}:${CI_APPLICATION_TAG}"
+    - docker pull "$APPLICATION_IMAGE"
+    - echo -e "\e[0Ksection_end:`date +%s`:docker_pull\r\e[0K"
+    - >-
+      docker run --rm --network host --entrypoint=""
+      -e TEST_USE_EXTERNAL_DATABASE -e EXTERNAL_SETTING_DATABASES
+      "$APPLICATION_IMAGE"
+      "/bin/bash" "-c" "poetry install --no-root --sync && poetry run pytest"
+  variables:
+    <<: *postgres-variables
+    # Allow dind service to talk to postgres service.
+    # See: https://docs.gitlab.com/ee/ci/services/#using-services-with-docker-run-docker-in-docker-side-by-side
+    FF_NETWORK_PER_BUILD: "true"
+  rules:
+    # We need the build job for this job so only run it if the build job was
+    # run.
+    - !reference [build, rules]

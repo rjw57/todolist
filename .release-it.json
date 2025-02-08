@@ -1,0 +1,25 @@
+{
+  "git": {
+    "commitMessage": "chore(release): ${version}"
+  },
+  "gitlab": {
+    "release": true,
+    "releaseName": "${version}"
+  },
+  "plugins": {
+    "@release-it/conventional-changelog": {
+      "infile": "CHANGELOG.md",
+      "header": "# Changelog",
+      "preset": {
+        "name": "conventionalcommits"
+      }
+    },
+    "@release-it/bumper": {
+      "out": {
+        "file": "pyproject.toml",
+        "type": "text/toml",
+        "path": "tool.poetry.version"
+      }
+    }
+  }
+}

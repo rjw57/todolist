@@ -1,0 +1,143 @@
+[tool.poetry]
+name = "todolist"
+version = "0.1.0"
+description = ""
+authors = []
+readme = "README.md"
+package-mode = false
+
+[[tool.poetry.source]]
+name = "uis-devops"
+url = "https://gitlab.developers.cam.ac.uk/api/v4/groups/5/-/packages/pypi/simple"
+priority = "explicit"
+
+[tool.poe.tasks.up]
+help = "Start the application in local development mode"
+cmd = "docker compose up --build"
+env = { COMPOSE_PROFILES = "development" }
+
+[tool.poe.tasks.fix]
+help = "Run pre-commit checks to fix formatting errors"
+cmd = "pre-commit run --all-files"
+
+[tool.poe.tasks.tox]
+help = "Run the Python test suite via tox"
+cmd = "docker compose run --build --rm tox"
+
+[tool.poe.tasks.down]
+help = "Stop any running containers"
+cmd = "docker compose down"
+env = { COMPOSE_PROFILES = "development,production,utilities" }
+
+[tool.poe.tasks.manage]
+help = "Run Django management commands"
+cmd = "docker compose run --build --rm manage"
+
+[tool.poe.tasks."up:production"]
+help = "Start the application running in the production container"
+cmd = "docker compose up --build"
+env = { COMPOSE_PROFILES = "production" }
+
+[tool.poe.tasks."down:hard"]
+help = "Stop any running containers, remove any dangling containers and remove any persistent data volumes"
+cmd = "docker compose down --remove-orphans --volumes"
+env = { COMPOSE_PROFILES = "development,production,utilities" }
+
+[tool.poe.tasks."compose:build"]
+help = "Build or rebuild all container images"
+cmd = "docker compose build"
+env = { COMPOSE_PROFILES = "development,production,utilities" }
+
+[tool.poe.tasks."compose:pull"]
+help = "Pull any upstream container images"
+cmd = "docker compose pull --ignore-buildable --ignore-pull-failures"
+env = { COMPOSE_PROFILES = "development,production,utilities" }
+
+[tool.poe.tasks."tox:local"]
+help = "Run the Python test suite via tox using the locally installed Python version"
+cmd = "tox"
+
+[tool.poe.tasks."pytest:local"]
+help = "Run the Python test suite via pytest using the locally installed Python version"
+cmd = "pytest"
+
+[tool.pytest.ini_options]
+# We need to set EXTERNAL_SETTING_DATABASES to some default value but, in the
+# usual case of TEST_USE_EXTERNAL_DATABASE not being set, the actual value is
+# updated by the pytest django fixtures to point to a Postgres instance spun up
+# to run tests.
+env = [
+  "DJANGO_SETTINGS_MODULE=project.settings.testing",
+  'D:R:EXTERNAL_SETTING_DATABASES={"default":{}}',
+  "D:EXTERNAL_SETTING_SECRET_KEY=fake-secret-key",
+  "D:DANGEROUS_DISABLE_HTTPS_REDIRECT=1",
+  "D:EXTERNAL_SETTING_SOCIAL_AUTH_GOOGLE_OAUTH2_KEY=fake-key",
+  "D:EXTERNAL_SETTING_SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET=fake-secret",
+
+  "D:DJANGO_FRONTEND_APP_BUILD_DIR=ui/frontend/public/",
+
+]
+python_files = "tests.py test_*.py *_tests.py"
+filterwarnings = [
+  "ignore:.*pkg_resources.*:DeprecationWarning",
+  "ignore::DeprecationWarning:.*google.*",
+]
+
+[tool.poetry.dependencies]
+# Dependencies for the web application itself.
+#
+# Add dependencies here via "poetry add {dependency}".
+python = "^3.12"  # This should track the version tested in CI and used by the Docker image.
+django = ">=4.2.0,<4.3.0"
+django-structlog = "^5.1.0"
+externalsettings = {version = "^1.0.2", source = "uis-devops"}
+gunicorn = "^20.1.0"
+psycopg = {extras = ["binary"], version = "^3.1.9"}
+pyyaml = "^6.0"
+proxyprefix = "^0.1.3"
+social-auth-app-django = "^5.2.0"
+
+whitenoise = "^6.5.0"
+
+[tool.poetry.group.dev.dependencies]
+# Dependencies for running the web application in local development.
+#
+# Add dependencies here via "poetry add -G dev {dependency}".
+better-exceptions = "^0.3.3"
+coverage = {extras = ["toml"], version = "^7.2.7"}
+django-debug-toolbar = "^4.1.0"
+faker = "^18.11.1"
+ipython = "^8.14.0"
+pre-commit = "^3.3.3"
+pytest = "^7.4.0"
+pytest-django = "^4.5.2"
+pytest-docker-tools = "^3.1.3"
+pytest-env = "^0.8.2"
+# Keep this in sync with .gitlab/webapp.gitlab-ci.yml
+tox = "4.14.1"
+
+[build-system]
+requires = ["poetry-core>=1.8.2"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.mypy]
+ignore_missing_imports = true
+
+[tool.black]
+line-length = 99
+
+[tool.coverage.run]
+omit= [
+  ".tox/*",
+  "setup.py",
+  "manage.py",
+  "gunicorn.conf.py",
+  "*/test/*",
+  "*/tests/*",
+  "*/migrations/*",
+  "project/settings/*",
+  "project/wsgi.py",
+]
+
+[tool.isort]
+profile = "black"

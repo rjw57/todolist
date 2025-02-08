@@ -1,0 +1,21 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "local>uis/devops/renovate-config"
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "fileMatch": [
+        "^\\.gitlab/webapp\\.gitlab-ci\\.yml$",
+        "^\\.gitlab-ci\\.yml$"
+      ],
+      "matchStringsStrategy": "recursive",
+      "matchStrings": [
+        "(TOX_REQUIREMENT|TOX_ADDITIONAL_REQUIREMENTS):\\s*\"?.*\"?",
+        "(?<depName>[^\\s\"]+)\\s*==\\s*(?<currentValue>[^\\s\"]+)"
+      ],
+      "datasourceTemplate": "pypi"
+    }
+  ]
+}

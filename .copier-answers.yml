@@ -1,0 +1,22 @@
+# Changes here will be overwritten by Copier
+_commit: 2.5.0
+_src_path: https://gitlab.developers.cam.ac.uk/uis/devops/webapp-boilerplate.git
+api_module: api
+api_name: todolist API
+api_slug: api
+application_module: todolist
+application_name: todolist
+application_slug: todolist
+include_api: false
+include_ui: true
+max_line_length: 99
+project_module: project
+project_name: todolist
+project_repo: https://gitlab.developers.cam.ac.uk/uis/devops/todolist/webapp
+project_slug: todolist
+python_version: '3.12'
+respect_x_forward_header: false
+secret_key: todolist-this-is-not-a-secret
+ui_module: ui
+ui_name: todolist UI
+ui_slug: ui

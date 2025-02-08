@@ -44,13 +44,12 @@ services:
       - "frontend-build:/tmp/frontend_build:ro"
 
   # Front end used in development mode which is continually re-build using
-  # webpack's watch support. Used to provide an updated source of files for
-  # the Django app.
+  # vite's dev server. Used to provide an updated source of files for the Django app.
   frontend_watch:
     build:
       context: .
       target: frontend-deps
-    entrypoint: ["npm", "run", "watch"]
+    entrypoint: ["yarn"]
     volumes:
       # For the frontend, mount the local frontend directories inside the container
       # as a volume to allow local changes to be reflected without having to
@@ -64,7 +63,7 @@ services:
         target: /usr/src/app/public
         read_only: true
       - "frontend-build:/tmp/frontend_build"
-    command: ["run", "watch"]
+    command: ["run", "watch", "--emptyOutDir"]
     profiles:
       - development
     environment:

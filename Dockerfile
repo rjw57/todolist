@@ -43,8 +43,8 @@ FROM node:18 AS frontend-deps
 WORKDIR /usr/src/app
 
 # Install packages and build frontend
-ADD ./ui/frontend/package.json ./ui/frontend/package-lock.json ./
-RUN npm install
+ADD ./ui/frontend/package.json ./ui/frontend/yarn.lock ./
+RUN yarn install
 
 # Copy remaining files (such as tsconfig.json, etc) but do not build the
 # frontend yet.
@@ -53,7 +53,7 @@ ADD ./ui/frontend/ ./
 ###############################################################################
 # Use the frontend-deps container to build the frontend itself.
 FROM frontend-deps AS frontend-builder
-RUN npm run build
+RUN yarn run build
 
 ###############################################################################
 # Just enough to run tox. Tox will install any other dependencies it needs.

@@ -26,7 +26,9 @@ services:
       target: development
     environment:
       <<: *django-application-environment
-      DJANGO_FRONTEND_APP_BUILD_DIR: "/tmp/frontend_build"
+      EXTERNAL_SETTING_FRONTEND_SERVER: http://frontend-dev:4321/
+      EXTERNAL_SETTING_FRONTEND_STATIC_DIR: /usr/src/app/ui/frontend/public/
+      EXTERNAL_SETTING_FRONTEND_ADDITIONAL_FORWARDED_PATH_REGEX: ^(?:@.*)|(?:src/.*)|(?:node_modules/.*)$
     env_file:
       - secrets.env
     tty: true
@@ -37,38 +39,27 @@ services:
       - 5678:5678
     depends_on:
       <<: *webapp-depends-on
-      frontend_watch:
+      frontend-dev:
         condition: service_started
     volumes:
       - .:/usr/src/app:ro
       - "frontend-build:/tmp/frontend_build:ro"
 
-  # Front end used in development mode which is continually re-build using
-  # webpack's watch support. Used to provide an updated source of files for
-  # the Django app.
-  frontend_watch:
+  # Front end used in development mode which is hosted from the astro dev server.
+  frontend-dev:
     build:
       context: .
       target: frontend-deps
-    entrypoint: ["npm", "run", "watch"]
-    volumes:
-      # For the frontend, mount the local frontend directories inside the container
-      # as a volume to allow local changes to be reflected without having to
-      # re-build the container.
-      - type: bind
-        source: ./ui/frontend/src
-        target: /usr/src/app/src
-        read_only: true
-      - type: bind
-        source: ./ui/frontend/public
-        target: /usr/src/app/public
-        read_only: true
-      - "frontend-build:/tmp/frontend_build"
-    command: ["run", "watch"]
+    entrypoint: ["yarn", "run", "dev"]
+    command: ["--host", "0.0.0.0", "--port", "4321", "--allowed-hosts"]
+    ports:
+      - 4321:4321
+    expose:
+      - 4321
     profiles:
       - development
-    environment:
-      APP_BUILD: "/tmp/frontend_build"
+    volumes:
+      - ./ui/frontend/src:/usr/src/app/ui/frontend/src:ro
 
   # App running in production mode. This can be run via:
   #   docker compose --profile production up --build

@@ -115,3 +115,4 @@ venv.bak/
 
 # Secrets
 secrets.env
+ui/frontend/.astro

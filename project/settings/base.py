@@ -12,6 +12,8 @@ DATABASES = {
     },
 }
 
+FRONTEND_STATIC_DIR = None
+
 # If the EXTRA_SETTINGS_URLS environment variable is set, it is a comma-separated list of URLs from
 # which to fetch additional settings as YAML-formatted documents. The documents should be
 # dictionaries and top-level keys are imported into this module's global values.
@@ -34,6 +36,10 @@ externalsettings.load_external_settings(
         "EMAIL_HOST_PASSWORD",
         "EMAIL_HOST_USER",
         "EMAIL_PORT",
+        "FRONTEND_SERVER",
+        "FRONTEND_SERVER_ENTRY_POINT",
+        "FRONTEND_STATIC_DIR",
+        "FRONTEND_ADDITIONAL_FORWARDED_PATH_REGEX",
     ],
 )
 
@@ -99,21 +105,17 @@ LOGIN_URL = "/accounts/login/google-oauth2/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
-# Serve the frontend files from the application root.
-FRONTEND_APP_BUILD_DIR = os.environ.get(
-    "DJANGO_FRONTEND_APP_BUILD_DIR",
-    os.path.abspath(os.path.join(BASE_DIR, "ui", "frontend", "build")),
-)
-
 # If the build directory for the frontend actually exists, serve files for the root of the
 # application from it. Print a warning otherwise.
-if os.path.isdir(FRONTEND_APP_BUILD_DIR):
-    WHITENOISE_ROOT = FRONTEND_APP_BUILD_DIR
+if FRONTEND_STATIC_DIR is not None and os.path.isdir(FRONTEND_STATIC_DIR):
+    WHITENOISE_ROOT = FRONTEND_STATIC_DIR
 else:
     print(
-        "Warning: FRONTEND_APP_BUILD_DIR does not exist. The frontend will not be served",
+        "Warning: FRONTEND_STATIC_DIR not specified or does not exist. "
+        "The frontend static assets will not be served.",
         file=sys.stderr,
     )
+
 #: Root URL patterns
 ROOT_URLCONF = "project.urls"
 
@@ -121,7 +123,7 @@ ROOT_URLCONF = "project.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [FRONTEND_APP_BUILD_DIR],
+        "DIRS": [],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -267,7 +269,6 @@ structlog.configure(
         structlog.stdlib.add_log_level,
         structlog.stdlib.PositionalArgumentsFormatter(),
         structlog.processors.StackInfoRenderer(),
-        structlog.processors.format_exc_info,
         structlog.processors.UnicodeDecoder(),
         structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
     ],

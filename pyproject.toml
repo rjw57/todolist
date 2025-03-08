@@ -73,9 +73,6 @@ env = [
   "D:DANGEROUS_DISABLE_HTTPS_REDIRECT=1",
   "D:EXTERNAL_SETTING_SOCIAL_AUTH_GOOGLE_OAUTH2_KEY=fake-key",
   "D:EXTERNAL_SETTING_SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET=fake-secret",
-
-  "D:DJANGO_FRONTEND_APP_BUILD_DIR=ui/frontend/public/",
-
 ]
 python_files = "tests.py test_*.py *_tests.py"
 filterwarnings = [

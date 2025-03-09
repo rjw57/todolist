@@ -41,9 +41,6 @@ FROM registry.gitlab.developers.cam.ac.uk/uis/devops/infra/dockerimages/python:$
 # Do everything relative to /usr/src/app which is where we install our application.
 WORKDIR /usr/src/app
 
-# "Install" node by copying content of node base image.
-COPY --from=node-base-dev / /
-
 # Some performance and disk-usage optimisations for Python within a docker container.
 ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 
@@ -51,10 +48,8 @@ ENV PYTHONUNBUFFERED=1 PYTHONDONTWRITEBYTECODE=1
 RUN pip install --no-cache-dir poetry && poetry self add poetry-plugin-export
 
 ###############################################################################
-# Install frontend dependencies within a dedicated container. Note that for consistency we use the
-# same version of node installed into the "installed-deps" container, not that it *should* matter as
-# the build artefacts should be identical.
-FROM node-base-dev AS frontend-deps
+# Install production mode frontend dependencies within a dedicated container.
+FROM node-base AS frontend-deps
 
 # Do everything relative to /usr/src/app which is where we install our
 # application.
@@ -70,8 +65,11 @@ COPY ./frontend/ ./
 
 ###############################################################################
 # Use the frontend-deps container to build the frontend itself.
-FROM frontend-deps AS frontend-builder
+FROM frontend-deps AS frontend-production
 RUN yarn astro check && yarn build
+ENV HOST=0.0.0.0 PORT=4321
+EXPOSE 4321
+ENTRYPOINT ["yarn", "serve"]
 
 ###############################################################################
 # Just enough to run tox. Tox will install any other dependencies it needs.
@@ -88,9 +86,6 @@ CMD []
 ###############################################################################
 # Install requirements.
 FROM base AS installed-deps
-
-# "Install" node.
-COPY --from=node-base / /
 
 COPY pyproject.toml poetry.lock ./
 RUN set -e; \
@@ -135,9 +130,8 @@ FROM installed-deps AS production
 # The production target includes the application code.
 COPY . .
 
-# Copy the frontend application code which was built by the frontend builder.
-COPY --from=frontend-builder /usr/src/app/frontend/ /usr/src/app/frontend/
-ENV EXTERNAL_SETTING_FRONTEND_SERVER_ENTRY_POINT=/usr/src/app/frontend/django-server.mjs
+# Copy the frontend application static files which were built by the frontend builder.
+COPY --from=frontend-production /usr/src/app/frontend/dist/client/ /usr/src/app/frontend/dist/client/
 ENV EXTERNAL_SETTING_FRONTEND_STATIC_DIR=/usr/src/app/frontend/dist/client/
 
 # Collect any static files

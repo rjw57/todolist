@@ -29,8 +29,6 @@ services:
       EXTERNAL_SETTING_FRONTEND_SERVER: http://frontend-dev:4321/
       EXTERNAL_SETTING_FRONTEND_STATIC_DIR: /usr/src/app/frontend/public/
       EXTERNAL_SETTING_FRONTEND_ADDITIONAL_FORWARDED_PATH_REGEX: ^(?:@.*)|(?:src/.*)|(?:node_modules/.*)$
-      # EXTERNAL_SETTING_FRONTEND_SERVER_ENTRY_POINT: /usr/src/app/frontend/django-server.mjs
-      # EXTERNAL_SETTING_FRONTEND_STATIC_DIR: /usr/src/app/frontend/dist/client/
     env_file:
       - secrets.env
     tty: true
@@ -42,10 +40,9 @@ services:
     depends_on:
       <<: *webapp-depends-on
       frontend-dev:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - .:/usr/src/app:ro
-      - "frontend-build:/tmp/frontend_build:ro"
 
   # Front end used in development mode which is hosted from the astro dev server.
   frontend-dev:
@@ -58,6 +55,11 @@ services:
       - 4321:4321
     expose:
       - 4321
+    healthcheck:
+      test: >-
+        curl --fail http://localhost:4321/
+      interval: 1s
+      start_period: 60s
     profiles:
       - development
     volumes:
@@ -71,11 +73,30 @@ services:
       context: .
     depends_on:
       <<: *webapp-depends-on
+      frontend-production:
+        condition: service_healthy
     profiles:
       - production
     environment:
       <<: *django-application-environment
+      EXTERNAL_SETTING_FRONTEND_SERVER: http://frontend-production:4321/
+      EXTERNAL_SETTING_FRONTEND_STATIC_DIR: /usr/src/app/frontend/dist/client/
     volumes: []
+
+  # Front end used in production mode.
+  frontend-production:
+    build:
+      context: .
+      target: frontend-production
+    expose:
+      - 4321
+    healthcheck:
+      test: >-
+        curl --fail http://localhost:4321/
+      interval: 1s
+      start_period: 60s
+    profiles:
+      - production
 
   # Service to allow management commands to be run via:
   #   docker compose run --build --rm manage ...
@@ -172,6 +193,3 @@ volumes:
   # Persistent volumes for postgres database data.
   postgres-data:
   postgres-backup:
-
-  # Build directory for frontend
-  frontend-build:

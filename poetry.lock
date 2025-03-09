@@ -1746,21 +1746,6 @@ requests = ">=2.0.0"
 rsa = ["oauthlib[signedtoken] (>=3.0.0)"]
 
 [[package]]
-name = "requests-unixsocket"
-version = "0.4.1"
-description = "Use requests to talk HTTP via a UNIX domain socket"
-optional = false
-python-versions = ">=3.9"
-groups = ["main"]
-files = [
-    {file = "requests_unixsocket-0.4.1-py3-none-any.whl", hash = "sha256:60c4942e9dbecc2f64d611039fb1dfc25da382083c6434ac0316dca3ff908f4d"},
-    {file = "requests_unixsocket-0.4.1.tar.gz", hash = "sha256:b2596158c356ecee68d27ba469a52211230ac6fb0cde8b66afb19f0ed47a1995"},
-]
-
-[package.dependencies]
-requests = ">=1.1"
-
-[[package]]
 name = "rsa"
 version = "4.9"
 description = "Pure-Python RSA implementation"
@@ -2049,4 +2034,4 @@ brotli = ["brotli"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.12"
-content-hash = "e2d0125561cf6f503575f4bd570b165eb3501ac7a6dcc422936939b40559bbb1"
+content-hash = "57f10a2495fa55ce3edc6b6feab975e4ad105bf3c656144633fd5db959f35cc7"

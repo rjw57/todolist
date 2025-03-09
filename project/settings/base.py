@@ -37,7 +37,6 @@ externalsettings.load_external_settings(
         "EMAIL_HOST_USER",
         "EMAIL_PORT",
         "FRONTEND_SERVER",
-        "FRONTEND_SERVER_ENTRY_POINT",
         "FRONTEND_STATIC_DIR",
         "FRONTEND_ADDITIONAL_FORWARDED_PATH_REGEX",
     ],

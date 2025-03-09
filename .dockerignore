@@ -18,5 +18,5 @@ coverage.xml
 *.log
 .git
 build
-ui/frontend/node_modules
-ui/frontend/dist
+frontend/node_modules
+frontend/dist

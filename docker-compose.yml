@@ -27,7 +27,7 @@ services:
     environment:
       <<: *django-application-environment
       EXTERNAL_SETTING_FRONTEND_SERVER: http://frontend-dev:4321/
-      EXTERNAL_SETTING_FRONTEND_STATIC_DIR: /usr/src/app/ui/frontend/public/
+      EXTERNAL_SETTING_FRONTEND_STATIC_DIR: /usr/src/app/frontend/public/
       EXTERNAL_SETTING_FRONTEND_ADDITIONAL_FORWARDED_PATH_REGEX: ^(?:@.*)|(?:src/.*)|(?:node_modules/.*)$
     env_file:
       - secrets.env
@@ -59,7 +59,7 @@ services:
     profiles:
       - development
     volumes:
-      - ./ui/frontend/src:/usr/src/app/ui/frontend/src:ro
+      - ./frontend/:/usr/src/app/frontend/
 
   # App running in production mode. This can be run via:
   #   docker compose --profile production up --build

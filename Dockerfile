@@ -58,15 +58,15 @@ FROM node-base-dev AS frontend-deps
 
 # Do everything relative to /usr/src/app which is where we install our
 # application.
-WORKDIR /usr/src/app/ui/frontend/
+WORKDIR /usr/src/app/frontend/
 
 # Install packages and build frontend
-ADD ./ui/frontend/package.json ./ui/frontend/yarn.lock ./
+ADD ./frontend/package.json ./frontend/yarn.lock ./
 RUN yarn install
 
 # Copy remaining files (such as tsconfig.json, etc) but do not build the
 # frontend yet.
-ADD ./ui/frontend/ ./
+ADD ./frontend/ ./
 
 ###############################################################################
 # Use the frontend-deps container to build the frontend itself.
@@ -136,9 +136,9 @@ FROM installed-deps AS production
 COPY . .
 
 # Copy the frontend application code which was built by the frontend builder.
-COPY --from=frontend-builder /usr/src/app/ui/frontend/ /usr/src/app/ui/frontend/
-ENV EXTERNAL_SETTING_FRONTEND_SERVER_ENTRY_POINT=/usr/src/app/ui/frontend/run-server.mjs
-ENV EXTERNAL_SETTING_FRONTEND_STATIC_DIR=/usr/src/app/ui/frontend/dist/client/
+COPY --from=frontend-builder /usr/src/app/frontend/ /usr/src/app/frontend/
+ENV EXTERNAL_SETTING_FRONTEND_SERVER_ENTRY_POINT=/usr/src/app/frontend/run-server.mjs
+ENV EXTERNAL_SETTING_FRONTEND_STATIC_DIR=/usr/src/app/frontend/dist/client/
 
 # Collect any static files
 RUN \

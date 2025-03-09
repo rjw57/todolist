@@ -61,12 +61,12 @@ FROM node-base-dev AS frontend-deps
 WORKDIR /usr/src/app/frontend/
 
 # Install packages and build frontend
-ADD ./frontend/package.json ./frontend/yarn.lock ./
-RUN yarn install
+COPY ./frontend/package.json ./frontend/yarn.lock ./
+RUN yarn install && yarn cache clean
 
 # Copy remaining files (such as tsconfig.json, etc) but do not build the
 # frontend yet.
-ADD ./frontend/ ./
+COPY ./frontend/ ./
 
 ###############################################################################
 # Use the frontend-deps container to build the frontend itself.

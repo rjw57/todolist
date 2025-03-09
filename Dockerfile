@@ -64,6 +64,23 @@ RUN yarn install && yarn cache clean
 COPY ./frontend/ ./
 
 ###############################################################################
+# Install development mode frontend dependencies within a dedicated container. Recall that this
+# container differs from frontend-deps as it will match the platform of the local machine.
+FROM node-base-dev AS frontend-deps-dev
+
+# Do everything relative to /usr/src/app which is where we install our
+# application.
+WORKDIR /usr/src/app/frontend/
+
+# Install packages and build frontend
+COPY ./frontend/package.json ./frontend/yarn.lock ./
+RUN yarn install && yarn cache clean
+
+# Copy remaining files (such as tsconfig.json, etc) but do not build the
+# frontend yet.
+COPY ./frontend/ ./
+
+###############################################################################
 # Use the frontend-deps container to build the frontend itself.
 FROM frontend-deps AS frontend-production
 RUN yarn astro check && yarn build

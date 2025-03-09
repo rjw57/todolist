@@ -48,7 +48,7 @@ services:
   frontend-dev:
     build:
       context: .
-      target: frontend-deps
+      target: frontend-deps-dev
     entrypoint: ["yarn", "run", "dev"]
     command: ["--host", "0.0.0.0", "--port", "4321", "--allowed-hosts"]
     ports:

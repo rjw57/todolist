@@ -6,6 +6,9 @@ const djangoContext = Astro.locals.django?.context;
 ---
 <DefaultLayout>
   <p>This is an example of a template.</p>
-  <p>Received request context:</p>
+  <p>Received template context:</p>
   <p><pre><code>{JSON.stringify(djangoContext)}</code></pre></p>
+  <p>
+    This page is also available at <a href="/template/testing-id?foo=bar">a pattern-based URL</a>.
+  </p>
 </DefaultLayout>

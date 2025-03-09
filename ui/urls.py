@@ -13,7 +13,8 @@ app_name = "ui"
 urlpatterns = [
     path("", views.FrontendView.as_view(), name="home"),
     path("another-index", views.FrontendView.as_view(path=""), name="another-index"),
-    path("template-test", views.FrontendView.as_view(), name="another-index"),
+    path("template-test", views.TemplateTest.as_view()),
+    path("template/<slug:template_id>", views.TemplateTest.as_view()),
 ]
 
 # If we were passed an additional list of path regexes to pass to the frontend server, configure

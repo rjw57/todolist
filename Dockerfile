@@ -71,7 +71,7 @@ COPY ./frontend/ ./
 ###############################################################################
 # Use the frontend-deps container to build the frontend itself.
 FROM frontend-deps AS frontend-builder
-RUN yarn run build
+RUN yarn astro check && yarn build
 
 ###############################################################################
 # Just enough to run tox. Tox will install any other dependencies it needs.

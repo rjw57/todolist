@@ -29,6 +29,8 @@ services:
       EXTERNAL_SETTING_FRONTEND_SERVER: http://frontend-dev:4321/
       EXTERNAL_SETTING_FRONTEND_STATIC_DIR: /usr/src/app/frontend/public/
       EXTERNAL_SETTING_FRONTEND_ADDITIONAL_FORWARDED_PATH_REGEX: ^(?:@.*)|(?:src/.*)|(?:node_modules/.*)$
+      # EXTERNAL_SETTING_FRONTEND_SERVER_ENTRY_POINT: /usr/src/app/frontend/django-server.mjs
+      # EXTERNAL_SETTING_FRONTEND_STATIC_DIR: /usr/src/app/frontend/dist/client/
     env_file:
       - secrets.env
     tty: true

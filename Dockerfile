@@ -137,7 +137,7 @@ COPY . .
 
 # Copy the frontend application code which was built by the frontend builder.
 COPY --from=frontend-builder /usr/src/app/frontend/ /usr/src/app/frontend/
-ENV EXTERNAL_SETTING_FRONTEND_SERVER_ENTRY_POINT=/usr/src/app/frontend/run-server.mjs
+ENV EXTERNAL_SETTING_FRONTEND_SERVER_ENTRY_POINT=/usr/src/app/frontend/django-server.mjs
 ENV EXTERNAL_SETTING_FRONTEND_STATIC_DIR=/usr/src/app/frontend/dist/client/
 
 # Collect any static files

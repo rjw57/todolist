@@ -26,6 +26,12 @@ export default defineConfig({
     },
   },
 
+  devToolbar: {
+    // The dev toolbar doesn't bring us anything at the moment since we aren't heavy users of
+    // server-side islands.
+    enabled: false,
+  },
+
   adapter: node({
     mode: "middleware",
   }),

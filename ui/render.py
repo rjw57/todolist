@@ -4,9 +4,10 @@ import shutil
 import subprocess
 import tempfile
 import time
+from functools import cache
+from threading import Condition
 from typing import Optional
 from urllib.parse import quote_plus, urlunsplit
-from functools import cache
 
 import requests
 import structlog
@@ -18,7 +19,8 @@ LOG = structlog.get_logger()
 
 class BaseFrontendServer(abc.ABC):
     @abc.abstractmethod
-    def get_session_and_base_url(self) -> tuple[requests.Session, str]: ...
+    def get_session_and_base_url(self) -> tuple[requests.Session, str]:
+        ...
 
 
 class FrontendDevServer(BaseFrontendServer):
@@ -36,20 +38,24 @@ class FrontendServer(BaseFrontendServer):
     _tmp_dir: Optional[tempfile.TemporaryDirectory]
     _base_url: Optional[str]
     _server_process: Optional[subprocess.Popen]
+    _server_ready: bool
+    _server_ready_condition: Condition
 
     def __init__(self, *, entry_point: str):
         self._entry_point = entry_point
         self._session = UnixSocketSession()
-        self._server_process = None
         self._tmp_dir = None
         self._base_url = None
+        self._server_process = None
+        self._server_ready = False
+        self._server_ready_condition = Condition()
         self._start()
 
     def __del__(self):
         self._stop()
 
     def _start(self):
-        assert self._server_process is None
+        assert self._server_process is None and not self._server_ready
         self._tmp_dir = tempfile.TemporaryDirectory(prefix="django-frontend-")
         socket_path = os.path.join(self._tmp_dir.name, "server.socket")
         node_executable = getattr(settings, "FRONTEND_NODE_BIN", shutil.which("node"))
@@ -73,47 +79,56 @@ class FrontendServer(BaseFrontendServer):
         )
         self._base_url = urlunsplit(("http+unix", quote_plus(socket_path), "/", "", ""))
 
-    def _stop(self):
-        if self._server_process is None:
-            return
+        with self._server_ready_condition:
+            # Wait for the server to be alive.
+            for _ in range(200):
+                if self._server_process.returncode is not None:
+                    LOG.error(
+                        "Frontend server process exited", exit_code=self._server_process.returncode
+                    )
+                    self._server_process = None
+                    self._stop()
 
+                    raise RuntimeError("Frontend server process exited.")
+
+                try:
+                    r = self._session.get(self._base_url, timeout=0.1)
+                    if r.ok:
+                        break
+                except requests.exceptions.RequestException:
+                    pass
+
+                LOG.info("Waiting for frontend server...")
+                time.sleep(0.1)
+            else:
+                raise RuntimeError("Timeout waiting for frontend server.")
+
+            self._server_ready = True
+            self._server_ready_condition.notify_all()
+
+    def _stop(self):
         self._tmp_dir = None
         self._base_url = None
+        self._server_ready = False
 
-        self._server_process.terminate()
-        try:
-            self._server_process.wait(5)
-        except subprocess.TimeoutExpired:
-            LOG.warn("Frontend server process did not stop gracefully.")
-            self._server_process.kill()
+        if self._server_process is not None:
+            self._server_process.terminate()
+            try:
+                self._server_process.wait(5)
+            except subprocess.TimeoutExpired:
+                LOG.warn("Frontend server process did not stop gracefully.")
+                self._server_process.kill()
 
-        self._server_process = None
+            self._server_process = None
 
     def _ensure_server(self):
         if self._server_process is None:
             self._start()
 
-        assert self._server_process is not None
-        assert self._base_url is not None
-
-        if self._server_process.returncode is not None:
-            LOG.error("Frontend server process exited", exit_code=self._server_process.returncode)
-            self._stop()
-
-            raise RuntimeError("Frontend server process exited.")
-
-        # Wait for the server to be alive.
-        for _ in range(200):
-            try:
-                r = self._session.get(self._base_url, timeout=0.1)
-                if r.ok:
-                    break
-            except requests.exceptions.RequestException:
-                pass
-            LOG.info("Waiting for frontend server...")
-            time.sleep(0.1)
-        else:
-            raise RuntimeError("Timeout waiting for frontend server.")
+        if not self._server_ready:
+            with self._server_ready_condition:
+                while not self._server_ready:
+                    self._server_ready_condition.wait()
 
     def get_session_and_base_url(self) -> tuple[requests.Session, str]:
         self._ensure_server()
